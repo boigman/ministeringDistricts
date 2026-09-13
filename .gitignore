@@ -1,0 +1,20 @@
+# Ignore private Google API credentials and session tokens
+credentials.json
+token.json
+
+# Ignore local CSV member data files
+*.csv
+
+# Ignore local configuration overrides
+config.json
+
+# Ignore PyCharm project files
+.idea/
+
+# Ignore Python virtual environments
+.venv/
+venv/
+__pycache__/
+generated/
+*.pyc
+*.pdf
