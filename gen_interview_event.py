@@ -29,7 +29,7 @@ def create_testing_link():
     print("🗓️ --- Google Calendar Invitation Link Tool (TEST MODE) ---")
     default_sunday = get_next_sunday()
 
-    elder_name = input("Enter Elder's Name (e.g., Mitch Emerick): ").strip()
+    elder_name = input("Enter Elder's Name (e.g., Bob Smith): ").strip()
     date_input = input(f"Enter Meeting Date [Default Next Sunday: {default_sunday}]: ").strip()
     meeting_date = date_input if date_input else default_sunday
 

@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import json
 import calendar
@@ -10,9 +11,11 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen import canvas
 
+BASE_DIR = Path(__file__).resolve().parent
 # --- File Path Configuration (Ubuntu Layouts) ---
-CONFIG_PATH = "/home/dave/PycharmProjects/ministeringDistricts/config.json"
-FALLBACK_JSON_PATH = "/home/dave/PycharmProjects/ministeringDistricts/Ministering2026Q3.json"
+CSV_DIRECTORY_PATH = BASE_DIR / "Elders_Phones.csv"
+CONFIG_PATH = BASE_DIR / "config.json"
+FALLBACK_JSON_PATH = BASE_DIR / "Ministering2026Q3.json"
 
 
 class NumberedCanvas(canvas.Canvas):

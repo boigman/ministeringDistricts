@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import pickle
 import json
@@ -7,11 +8,14 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
+
+# This automatically finds the folder where this script lives on the flash drive
+BASE_DIR = Path(__file__).resolve().parent
 # --- File Path Configuration (Ubuntu Layouts) ---
-CREDENTIALS_FILE = "/home/dave/PycharmProjects/ministeringDistricts/credentials.json"
-TOKEN_FILE = "/home/dave/PycharmProjects/ministeringDistricts/token.json"
-CONFIG_PATH = "/home/dave/PycharmProjects/ministeringDistricts/config.json"
-CSV_DIRECTORY_PATH = "/home/dave/PycharmProjects/ministeringDistricts/Elders_Phones.csv"
+CREDENTIALS_FILE = BASE_DIR / "credentials.json"
+TOKEN_FILE = BASE_DIR / "token.json"
+CONFIG_PATH = BASE_DIR / "config.json"
+CSV_DIRECTORY_PATH = BASE_DIR / "Elders_Phones.csv"
 
 SCOPES = ['https://googleapis.com']
 

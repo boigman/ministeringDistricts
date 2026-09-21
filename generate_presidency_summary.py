@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import pickle
 import json
@@ -12,12 +13,15 @@ from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-# --- Configuration & Paths ---
-TOKEN_FILE = "/home/dave/PycharmProjects/ministeringDistricts/token.json"
-CREDENTIALS_FILE = "/home/dave/PycharmProjects/ministeringDistricts/credentials.json"
-CONFIG_PATH = "/home/dave/PycharmProjects/ministeringDistricts/config.json"
+# This automatically finds the folder where this script lives on the flash drive
+BASE_DIR = Path(__file__).resolve().parent
+# --- File Path Configuration (Ubuntu Layouts) ---
+TOKEN_FILE = BASE_DIR / "token.json"
+CREDENTIALS_FILE = BASE_DIR / "credentials.json"
+CONFIG_PATH = BASE_DIR / "config.json"
 
-SCOPES = ['https://googleapis.com']
+#SCOPES = ['https://www.googleapis.com']
+SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
 
 def load_config():

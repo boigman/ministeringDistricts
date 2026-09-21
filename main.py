@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 import csv
 import os
@@ -10,9 +11,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.encoders import encode_base64
 
+# This automatically finds the folder where this script lives on the flash drive
+BASE_DIR = Path(__file__).resolve().parent
 # --- File Path Configuration (Ubuntu Layouts) ---
-CSV_DIRECTORY_PATH = "/home/dave/PycharmProjects/ministeringDistricts/Elders_Phones.csv"
-CONFIG_PATH = "/home/dave/PycharmProjects/ministeringDistricts/config.json"
+CSV_DIRECTORY_PATH = BASE_DIR / "Elders_Phones.csv"
+CONFIG_PATH = BASE_DIR / "config.json"
 
 
 def load_config(config_path):
