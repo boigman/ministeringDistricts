@@ -18,7 +18,7 @@ TOKEN_FILE = BASE_DIR / "token.json"
 CONFIG_PATH = BASE_DIR / "config.json"
 CSV_DIRECTORY_PATH = BASE_DIR / "Elders_Phones.csv"
 
-SCOPES = ['https://googleapis.com']
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 
 def load_config():

@@ -4,7 +4,7 @@ import pickle
 import json
 import csv
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -13,12 +13,15 @@ from email.encoders import encode_base64
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
+from pathlib import Path
 
-# --- File Path Configuration (Ubuntu Layouts) ---
-TOKEN_FILE = "/home/dave/PycharmProjects/ministeringDistricts/token.json"
-CREDENTIALS_FILE = "/home/dave/PycharmProjects/ministeringDistricts/credentials.json"
-CONFIG_PATH = "/home/dave/PycharmProjects/ministeringDistricts/config.json"
-CSV_DIRECTORY_PATH = "/home/dave/PycharmProjects/ministeringDistricts/Elders_Phones.csv"
+# --- Dynamic Cross-Platform Path Configurations ---
+BASE_DIR = Path(__file__).resolve().parent
+
+TOKEN_FILE = str(BASE_DIR / "token.json")
+CREDENTIALS_FILE = str(BASE_DIR / "credentials.json")
+CONFIG_PATH = str(BASE_DIR / "config.json")
+CSV_DIRECTORY_PATH = str(BASE_DIR / "Elders_Phones.csv")
 
 SCOPES = ['https://googleapis.com']
 
@@ -84,7 +87,6 @@ def get_last_name_from_lcr(full_name):
 
 
 def find_elder_metadata(cal_elder_name, phone_directory):
-    """Matches calendar name variations to the official CSV directory."""
     cal_parts = cal_elder_name.lower().replace(',', '').split()
     if not cal_parts:
         return cal_elder_name, "___________"
@@ -100,7 +102,7 @@ def find_elder_metadata(cal_elder_name, phone_directory):
         else:
             parts = csv_name.lower().split()
             csv_last = parts[-1] if parts else ""
-            csv_first = parts[0] if len(parts) > 1 else ""
+            csv_first = parts[0] if parts else ""
 
         csv_first_init = csv_first[0] if csv_first else ""
 
@@ -111,7 +113,6 @@ def find_elder_metadata(cal_elder_name, phone_directory):
 
 
 def get_supervisor_display(initials, config_titles):
-    """Maps initials back to full names and custom titles (Pres vs Br)."""
     for full_name, title in config_titles.items():
         if ',' in full_name:
             parts = full_name.split(',')
@@ -129,10 +130,18 @@ def get_supervisor_display(initials, config_titles):
     return f"Br {initials}"
 
 
+def calculate_default_sunday():
+    """Returns today's date string if today is Sunday, otherwise calculates the following Sunday."""
+    today = datetime.now()
+    if today.weekday() == 6:  # 6 corresponds to Sunday in Python's weekday tracker
+        return today
+    days_until_sunday = (6 - today.weekday()) % 7
+    return today + timedelta(days=days_until_sunday)
+
+
 def email_generated_file_to_myself(text_content, subject_line, filename_on_disk):
-    """Saves a local backup file copy and emails it directly to your phone's inbox."""
-    os.makedirs("generated", exist_ok=True)
-    full_file_path = f"generated/{filename_on_disk}"
+    os.makedirs(str(BASE_DIR / "generated"), exist_ok=True)
+    full_file_path = str(BASE_DIR / "generated" / filename_on_disk)
     with open(full_file_path, "w", encoding="utf-8") as text_file:
         text_file.write(text_content)
     print(f"\n💾 Complete reminder text file backup saved locally at: {full_file_path}")
@@ -181,9 +190,27 @@ def generate_today_reminders():
     phone_directory = load_phone_directory(CSV_DIRECTORY_PATH)
     service = get_calendar_service()
 
-    today = datetime.now()
-    time_min = f"{today.strftime('%Y-%m-%d')}T00:00:00-05:00"
-    time_max = f"{today.strftime('%Y-%m-%d')}T23:59:59-05:00"
+    # 1. Dynamically identify smart default targets based on the current calendar day
+    default_date_obj = calculate_default_sunday()
+    default_date_str = default_date_obj.strftime("%Y-%m-%d")
+
+    print("=========================================================")
+    print(" 📱 SUNDAY INTERVIEW TEXT REMINDER GENERATOR")
+    print("=========================================================")
+
+    # 2. Prompt user to easily override or fast-pass select the target date
+    user_input = input(f"Enter Target Sunday Date [Default: {default_date_str}]: ").strip()
+    target_date_str = user_input if user_input else default_date_str
+
+    try:
+        target_date = datetime.strptime(target_date_str, "%Y-%m-%d")
+    except ValueError:
+        print("❌ Error formatting input date. Please use YYYY-MM-DD format.")
+        return
+
+    # Establish precise boundaries for the selected date target window
+    time_min = f"{target_date.strftime('%Y-%m-%d')}T00:00:00-05:00"
+    time_max = f"{target_date.strftime('%Y-%m-%d')}T23:59:59-05:00"
 
     try:
         request = service.events().list(
@@ -208,11 +235,12 @@ def generate_today_reminders():
         print(text)
         out_lines.append(text)
 
-    log_print("=========================================================")
-    log_print(" 📱 SUNDAY INTERVIEW TEXT REMINDER GENERATOR")
-    log_print(f" Scanning schedules for today: {today.strftime('%A, %b %-d, %Y')}")
-    log_print("=========================================================")
-    log_print("\n🚀 --- Copy/Paste Text Reminders ---")
+    # Universal cross-platform zero-padding stripper adjustments
+    day_format = "%#d" if os.name == 'nt' else "%-d"
+    formatted_display_date = target_date.strftime(f"%A, %b {day_format}, %Y")
+
+    log_print(f"\nScanning schedules for targeted date: {formatted_display_date}")
+    log_print("🚀 --- Copy/Paste Text Reminders ---")
 
     for event in events:
         summary = event.get('summary', '')
@@ -227,7 +255,8 @@ def generate_today_reminders():
                 try:
                     time_part = start_str.split('T')[1][:5]
                     dt_obj = datetime.strptime(time_part, "%H:%M")
-                    time_display = dt_obj.strftime("%-I:%M %p")
+                    hour_format = "%#I" if os.name == 'nt' else "%-I"
+                    time_display = dt_obj.strftime(f"{hour_format}:%M %p")
                 except Exception:
                     pass
 
@@ -240,14 +269,14 @@ def generate_today_reminders():
             count += 1
 
     log_print("\n---------------------------------------------------------")
-    log_print(f"🎉 Complete! Processed {count} active text reminder(s) for today.")
+    log_print(f"🎉 Complete! Processed {count} active text reminder(s) for this target date block.")
 
-    # --- TRANSMIT THEMaster PAYLOAD ONCE ALL EVENTS ARE PARSED ---
+    # --- TRANSMIT THE ENTIRE BUFFERED REPORT ONCE AT THE ABSOLUTE END ---
     master_text_payload = "\n".join(out_lines)
     email_generated_file_to_myself(
         text_content=master_text_payload,
-        subject_line=f"EQ Today's Sunday Reminders - {today.strftime('%b %d, %Y')}",
-        filename_on_disk=f"sunday_reminders_{today.strftime('%Y_%m_%d')}.txt"
+        subject_line=f"EQ Sunday Reminders Report - Target Date: {target_date.strftime('%b %d, %Y')}",
+        filename_on_disk=f"sunday_reminders_{target_date.strftime('%Y_%m_%d')}.txt"
     )
 
 

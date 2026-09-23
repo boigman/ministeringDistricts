@@ -2,7 +2,8 @@
 import os
 import json
 import re
-from datetime import datetime
+from pathlib import Path  # FIXED: Added the missing directory path tracking library
+from datetime import datetime, timedelta
 import pyperclip  # Crash-proof Linux clipboard management
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors

@@ -27,8 +27,18 @@ def display_menu():
 
 
 def main_loop():
-    # FIXED: Captures the active Python 3 path securely to bypass old system defaults on any OS
-    py_path = f'"{sys.executable}"'
+    # Dynamically locates your local virtual environment interpreter paths first
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    linux_venv = os.path.join(base_dir, ".venv", "bin", "python")
+    windows_venv = os.path.join(base_dir, ".venv", "Scripts", "python.exe")
+
+    if os.path.exists(linux_venv):
+        py_path = f'"{linux_venv}"'
+    elif os.path.exists(windows_venv):
+        py_path = f'"{windows_venv}"'
+    else:
+        py_path = f'"{sys.executable}"'
 
     while True:
         display_menu()
@@ -73,5 +83,6 @@ def main_loop():
         input("Execution completed. Press Enter to return to dashboard...")
 
 
+# CRITICAL MASTER ENTRY POINT: SITS FLUSH AGAINST LEFT MARGIN (0 SPACES)
 if __name__ == "__main__":
     main_loop()
