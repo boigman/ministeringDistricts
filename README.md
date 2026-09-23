@@ -4,6 +4,53 @@ A complete, production-ready automation toolkit for an Elders Quorum Presidency.
 
 ---
 
+
+## 🎯 Core Project Goals
+
+The overarching objective of this toolkit is to provide a **lightweight, terminal-based automation suite** that minimizes the administrative burden of running an Elders Quorum presidency, specifically targeting **Ministering Interviews**. The suite fulfills four core pillars:
+
+1. **Text Invitation Automation:** Eliminate the manual work of checking who is due for an interview and writing out text invitations one by one.
+2. **Calendar Integration:** Provide a fast, error-proof way to log confirmed appointments onto a shared Google Calendar without manually typing names, times, or custom titles.
+3. **Presidency Coordination:** Automatically generate copy-and-paste schedule updates for the weekly presidency text thread and real-time reminders for scheduled elders on Sunday morning.
+4. **Data Reconciliation & Auditing:** Cross-examine what was actually scheduled on the calendar against what LCR shows as officially recorded to ensure no interviews slip through the cracks.
+
+---
+
+## 📋 Logical Assumptions & Business Rules
+
+We codified specific presidency logic, Church directory constraints, and behavioral rules into the codebase to keep the automation intelligent:
+
+### 1. The Interview Priority & Breather Engine (`main.py`)
+To prevent over-texting or contacting elders out of order, the selection engine operates under a strict hierarchy based on the elapsed time since their last interview:
+* **Rule 0 (Quarterly Complete):** If *any single member* of a companionship has had an interview recorded in the active calendar quarter, the entire companionship is marked as **Complete** and skipped entirely for that quarter.
+* **The "Breather" Rule (Month 2 Delay):** If a companionship was interviewed exactly one month ago, they are in a "breather" month. The script skips texting them this week to avoid spamming them, allowing them to shift to an alternating two-month rotation.
+* **The "Action" Rule (Month 1 Action):** If their last interview was 2+ months ago, they are due. The script targets the companion who has gone the longest without an interview and prints a custom text invitation.
+* **The "Recovery" Action (Dormant > 9 Months):** If an active elder has gone 9+ months without an interview or is marked as *Never Interviewed*, they are flagged as a high-priority recovery target. The script overrides standard rotation rules and generates a customized text invitation to **both** companions to maximize contact success.
+* **Shared Household Rule:** If companions live in the same house (e.g., family members sharing a last name), the system skips complex individual rotations and coordinates their timeslot under a single invitation.
+
+### 2. Name Matching & Nickname Reconciliation
+* **First-Initial/Last-Name Matching:** Because humans use short names or nicknames on calendars (e.g., *"Devon Harris"*, *"Dave Stauffer"*) while LCR lists formal names (*"Harris, Devon Riley"*, *"Stauffer, David"*), the audit and reminder tools strip out commas and middle names. They validate matches by enforcing that the **last name** and the **first initial** match exactly.
+* **Quorum Integrity Filtering:** The raw LCR page source includes all assigned ministers—including spouses or Relief Society sisters assigned to companion blocks. To prevent non-quorum members from appearing on Elders Quorum delinquency logs, the tools pass all names through a strict cross-reference filter against `Elders_Phones.csv`. Anyone not on that official quorum phone roster is silently filtered out.
+
+### 3. Date & Quarter Synchronization
+* **LCR Static Quarter Matching:** When an interview checkbox is clicked in LCR, the database records the date as the **first day of that quarter** (e.g., July 1st for Q3) rather than the actual Sunday the meeting occurred. The audit tool is "quarter-aware"; it calculates which calendar quarter an event belongs to and successfully matches a July 19th calendar event to a July 1st LCR record without triggering a false positive flag.
+* **Dynamic Calendar Defaults:** Summary and reminder tools inspect the system clock. If executed on a Sunday, they default to evaluating *today's date*. If run on a weekday, they automatically step forward to calculate the *upcoming Sunday* as the target baseline.
+
+---
+
+## 💻 Technical Assumptions & Environment Constraints
+
+The system was progressively hardened to guarantee total cross-platform stability across **Ubuntu Linux** (local development space) and **Windows/macOS** (successor environments):
+
+* **Zero-Input Clipboard Parsing:** Rather than scraping LCR behind a password wall (which violates Church safety policies), the tools safely read live member data instantly via the system clipboard (`pyperclip`) using raw HTML source code chunks (`__NEXT_DATA__`).
+* **Universal Interpreter Pathing (`sys.executable`):** To stop Windows from accidentally routing background script executions through old, native Python 2.7 installations, the menu launcher explicitly tracks the active path of the running Python 3 interpreter to open all sub-scripts cleanly.
+* **Platform-Independent String Formatters:** Windows crashes when processing Linux zero-padding day/hour text commands (`%-d` or `%-I`). The system includes local OS detection hooks to seamlessly swap out hyphen modifiers for native Windows hash symbols (`%#d` and `%#I`) on the fly.
+* **Dynamic Directory Anchoring (`pathlib.Path`):** All hardcoded Ubuntu path tracking arrays were completely removed. The toolkit automatically anchors all data files (`config.json`, keys, databases) relative to the root directory where `menu.py` is sitting.
+* **Network & Security Bypasses:** 
+  * Ubuntu's local DNS caching layers can block standard mail address lookups. The configuration file routes automated message delivery traffic using Google’s **direct, permanent global server IP block (`74.125.142.108`)**, bypassing local routing bottlenecks entirely.
+  * Google’s cloud servers require explicit full-access calendar permissions (`.../auth/calendar.events`) to allow event insertion while cleanly reading records.
+
+
 ## 📁 Recommended Directory Structure
 To run successfully, the compiled executable or Python files must live in the same directory alongside their respective data registries and access keys:
 
@@ -66,12 +113,22 @@ Before launching the tools, open `config.json` in Notepad or any text editor to 
 ---
 
 ## 🚀 4. How to Run the App Suite
+
+This suite runs natively using the modern Python 3 platform engine. Ensure you have installed the required background libraries (`pip install pyperclip reportlab google-api-python-client google-auth-oauthlib`) before launching.
+
 ### 🏁 On Windows:
-Simply double-click the **`Run_EQ_Suite.exe`** icon file inside the folder workspace. A standard console menu option screen will initialize immediately.
+1. Open Windows File Explorer and navigate into your project folder: `OF Ward EQ Ministering Tools`.
+2. Click directly onto any empty white space inside the **folder address path bar** at the very top of the window (where it lists *This PC > USB Drive...*).
+3. Type the letters **`cmd`** directly into that top bar and press **Enter**. A black Command Prompt window will open, targeted inside your directory.
+4. Type this command and press **Enter** to launch the master dashboard:
+   ```cmd
+   python menu.py
+   ```
+   *(Note: If your system environment variables default to an older version of Python, launch using `py -3 menu.py` or `python3 menu.py` instead.)*
 
 ### 🐧 On Ubuntu Linux:
-1. Open a terminal inside your folder directory block.
-2. Grant execution privileges to the program once:  
-   `chmod +x menu`
-3. Launch the dashboard suite natively:  
-   `./menu`
+1. Open a terminal window directly inside your toolkit directory.
+2. Launch the master dashboard suite using your virtual environment Python interpreter path to ensure all background dependencies map seamlessly:
+   ```bash
+   .venv/bin/python menu.py
+   ```
